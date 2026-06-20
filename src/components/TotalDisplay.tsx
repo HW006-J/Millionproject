@@ -1,11 +1,12 @@
-import { TARGET_CENTS, formatCents, formatCentsWhole } from "@/lib/money";
+import { formatCents, formatCentsWhole } from "@/lib/money";
 
 interface TotalDisplayProps {
   confirmedCents: number;
+  targetCents: number;
 }
 
-export function TotalDisplay({ confirmedCents }: TotalDisplayProps) {
-  const percent = Math.min(100, (confirmedCents / TARGET_CENTS) * 100);
+export function TotalDisplay({ confirmedCents, targetCents }: TotalDisplayProps) {
+  const percent = Math.min(100, (confirmedCents / targetCents) * 100);
   const percentLabel = percent.toFixed(percent > 0 && percent < 1 ? 2 : 0);
 
   return (
@@ -17,7 +18,7 @@ export function TotalDisplay({ confirmedCents }: TotalDisplayProps) {
         {formatCents(confirmedCents)}
       </p>
       <p className="text-sm uppercase tracking-[0.2em] text-neutral-400">
-        raised of {formatCentsWhole(TARGET_CENTS)}
+        raised of {formatCentsWhole(targetCents)}
       </p>
 
       <div className="mt-4 w-full max-w-md">

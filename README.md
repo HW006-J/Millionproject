@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ONE MILLION
 
-## Getting Started
+A deliberately minimal viral social experiment: can the internet collectively contribute $1,000,000? No cause, no reward, no explanation — just one ridiculous goal.
 
-First, run the development server:
+Built with Next.js (App Router), TypeScript, Tailwind CSS, PostgreSQL, and Prisma.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see it.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses PostgreSQL via Prisma. The recommended option is a free [Neon](https://neon.tech) database (Vercel's Postgres integration is also Neon-backed, so either path works).
 
-## Learn More
+1. Create a Postgres database — either through the Vercel dashboard (**Storage → Create Database → Postgres**) or directly at [neon.tech](https://neon.tech).
+2. From the connection details, copy:
+   - The **pooled** connection string (usually has `-pooler` in the hostname) into `DATABASE_URL`.
+   - The **direct** connection string (no `-pooler`) into `DIRECT_URL`.
+3. Copy `.env.example` to `.env` and paste both values in:
+   ```bash
+   cp .env.example .env
+   ```
+   `.env` is gitignored and never committed.
+4. Apply the schema and seed the one starting campaign:
+   ```bash
+   npx prisma migrate dev
+   npx prisma db seed
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+This creates the `Campaign` and `Contribution` tables and inserts a single campaign (`ONE MILLION`, target `$1,000,000`, confirmed amount `$0`). No fake contributions are ever seeded.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Why two connection strings?
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Neon's pooled connection is best for the running app (many short-lived serverless connections); Prisma Migrate needs the direct connection for schema changes. `prisma.config.ts` uses `DIRECT_URL` for migrations; `src/lib/prisma.ts` uses `DATABASE_URL` for the app at runtime.
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app` — pages and API routes
+- `src/components` — landing page UI
+- `src/lib` — money formatting, Prisma client, campaign data access
+- `prisma/schema.prisma` — database schema
+- `prisma/seed.ts` — seeds the starting campaign
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+```bash
+npm run dev     # start the dev server
+npm run build   # production build
+npm run lint    # run ESLint
+```
+
+## Current status
+
+Implemented through Phase 2 of the project spec (see `PROJECT_SPEC.md`): landing page UI, database schema, and live campaign statistics. No payments, checkout, authentication, or admin dashboard yet.

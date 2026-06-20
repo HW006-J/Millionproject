@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentProvider {
+  STRIPE
+  MOCK
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+model Campaign {
+  id                         String   @id @default(cuid())
+  name                       String
+  slug                       String   @unique
+  currency                   String   @default("usd")
+  targetAmountCents          Int
+  confirmedAmountCents       Int      @default(0)
+  confirmedContributionCount Int      @default(0)
+  isActive                   Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  contributions Contribution[]
+
+  @@index([isActive])
+}
+
+model Contribution {
+  id                String          @id @default(cuid())
+  campaignId        String
+  campaign          Campaign        @relation(fields: [campaignId], references: [id])
+  amountCents       Int
+  currency          String          @default("usd")
+  paymentProvider   PaymentProvider
+  providerSessionId String?         @unique
+  providerPaymentId String?
+  paymentStatus     PaymentStatus   @default(PENDING)
+  publicName        String?
+  isAnonymous       Boolean         @default(true)
+  emailHash         String?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  confirmedAt       DateTime?
+  refundedAt        DateTime?
+
+  @@index([campaignId])
+  @@index([paymentStatus])
+  @@index([createdAt])
+  @@index([confirmedAt])
+}

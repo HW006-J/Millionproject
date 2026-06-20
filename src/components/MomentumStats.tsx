@@ -1,7 +1,8 @@
-import { TARGET_CENTS, formatCents } from "@/lib/money";
+import { formatCents } from "@/lib/money";
 
 interface MomentumStatsProps {
   confirmedCents: number;
+  targetCents: number;
   contributorCount: number;
   raisedTodayCents: number;
   raisedLastHourCents: number;
@@ -10,12 +11,13 @@ interface MomentumStatsProps {
 
 export function MomentumStats({
   confirmedCents,
+  targetCents,
   contributorCount,
   raisedTodayCents,
   raisedLastHourCents,
   averageContributionCents,
 }: MomentumStatsProps) {
-  const remainingCents = Math.max(0, TARGET_CENTS - confirmedCents);
+  const remainingCents = Math.max(0, targetCents - confirmedCents);
 
   const stats = [
     { label: "Contributors", value: contributorCount.toLocaleString("en-US") },

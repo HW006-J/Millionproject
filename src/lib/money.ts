@@ -5,7 +5,6 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
-export const TARGET_CENTS = 100_000_000;
 export const MIN_CONTRIBUTION_CENTS = 100;
 export const MAX_CONTRIBUTION_CENTS = 1_000_000;
 export const PRESET_AMOUNTS_CENTS = [100, 500, 1000, 2500, 10000];
