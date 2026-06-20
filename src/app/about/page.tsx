@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
-import { getLegalDisplayConfig } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "About — ONE MILLION",
@@ -8,8 +7,6 @@ export const metadata: Metadata = {
 };
 
 export default function AboutPage() {
-  const legal = getLegalDisplayConfig();
-
   return (
     <LegalPageLayout title="About ONE MILLION">
       <LegalSection heading="The idea">
@@ -56,24 +53,15 @@ export default function AboutPage() {
       </LegalSection>
 
       <LegalSection heading="Who receives the funds">
-        <p className={legal.legalEntityNameConfigured ? undefined : "text-neutral-500"}>
-          Funds are paid to {legal.legalEntityName}.
-        </p>
+        <p>Funds are paid to John White.</p>
       </LegalSection>
 
       <LegalSection heading="Intended use of funds">
-        <p className="text-neutral-500">
-          [INTENDED USE OF FUNDS] — not yet configured. This will be stated
-          truthfully here once decided, and will never be invented in
-          advance of an actual decision.
-        </p>
+        <p className="text-neutral-500">The intended use of the funds has not yet been decided.</p>
       </LegalSection>
 
       <LegalSection heading="Questions">
-        <p>
-          {legal.legalEntityNameConfigured ? `${legal.legalEntityName} — ` : ""}
-          {legal.contactEmail}
-        </p>
+        <p>millionproject1m@gmail.com</p>
       </LegalSection>
     </LegalPageLayout>
   );

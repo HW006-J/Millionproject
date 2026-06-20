@@ -1,43 +1,30 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import AboutPage from "@/app/about/page";
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
 
 describe("AboutPage", () => {
   it("renders successfully", () => {
     expect(() => renderToStaticMarkup(AboutPage())).not.toThrow();
   });
 
-  it("shows an explicit placeholder when contact email is not configured", () => {
-    vi.stubEnv("CONTACT_EMAIL", "");
+  it("states who receives the funds", () => {
     const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("[CONTACT EMAIL]");
+    expect(html).toContain("Funds are paid to John White.");
   });
 
-  it("renders a configured contact email safely", () => {
-    vi.stubEnv("CONTACT_EMAIL", "hello@example.test");
+  it("states the intended use of funds has not yet been decided", () => {
     const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("hello@example.test");
+    expect(html).toContain("The intended use of the funds has not yet been decided.");
   });
 
-  it("never invents an intended use of funds", () => {
+  it("shows the configured contact email", () => {
     const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("[INTENDED USE OF FUNDS]");
+    expect(html).toContain("millionproject1m@gmail.com");
   });
 
-  it("shows an explicit placeholder for who receives funds when unconfigured (PROJECT_SPEC.md requirement)", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", "");
+  it("no longer shows any bracketed placeholder", () => {
     const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("Funds are paid to [LEGAL ENTITY NAME]");
-  });
-
-  it("states the real legal entity once configured", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", "Example Holdings LLC");
-    const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("Funds are paid to Example Holdings LLC");
+    expect(html).not.toMatch(/\[[A-Z ]+\]/);
   });
 
   it("includes the development-stage draft banner", () => {
