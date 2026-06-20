@@ -2,48 +2,55 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import { MockCheckoutProvider } from "@/lib/payments/mock";
 
-const { mockCreate } = vi.hoisted(() => ({ mockCreate: vi.fn() }));
+const { mockFindOrCreate, mockResolveNonPendingRedirect } = vi.hoisted(() => ({
+  mockFindOrCreate: vi.fn(),
+  mockResolveNonPendingRedirect: vi.fn(),
+}));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    contribution: {
-      create: mockCreate,
-    },
-  },
+vi.mock("@/lib/payments/shared", () => ({
+  findOrCreatePendingContribution: mockFindOrCreate,
+  resolveNonPendingRedirect: mockResolveNonPendingRedirect,
 }));
 
 beforeEach(() => {
-  mockCreate.mockReset();
+  mockFindOrCreate.mockReset();
+  mockResolveNonPendingRedirect.mockReset();
 });
 
+const baseInput = {
+  campaignId: "camp_1",
+  amountCents: 500,
+  isAnonymous: true,
+  publicName: null,
+  hideAmountPublicly: false,
+  submissionToken: null,
+};
+
 describe("MockCheckoutProvider", () => {
-  it("creates a pending contribution using the mock provider", async () => {
-    mockCreate.mockResolvedValue({ id: "contrib_1" });
+  it("redirects to the mock checkout page for a newly created pending contribution", async () => {
+    mockFindOrCreate.mockResolvedValue({ id: "contrib_1", paymentStatus: PaymentStatus.PENDING });
 
     const provider = new MockCheckoutProvider();
-    const result = await provider.createCheckout({
-      campaignId: "camp_1",
-      amountCents: 500,
-      isAnonymous: true,
-      publicName: null,
-      hideAmountPublicly: false,
-    });
+    const result = await provider.createCheckout(baseInput);
 
-    expect(mockCreate).toHaveBeenCalledWith({
-      data: {
-        campaignId: "camp_1",
-        amountCents: 500,
-        currency: "usd",
-        paymentProvider: PaymentProvider.MOCK,
-        paymentStatus: PaymentStatus.PENDING,
-        isAnonymous: true,
-        publicName: null,
-        hideAmountPublicly: false,
-      },
+    expect(mockFindOrCreate).toHaveBeenCalledWith({
+      ...baseInput,
+      paymentProvider: PaymentProvider.MOCK,
     });
     expect(result).toEqual({
       contributionId: "contrib_1",
       redirectUrl: "/mock-checkout/contrib_1",
     });
+    expect(mockResolveNonPendingRedirect).not.toHaveBeenCalled();
+  });
+
+  it("uses the non-pending redirect when a duplicate submission already resolved", async () => {
+    mockFindOrCreate.mockResolvedValue({ id: "contrib_1", paymentStatus: PaymentStatus.CONFIRMED });
+    mockResolveNonPendingRedirect.mockReturnValue("/success/contrib_1");
+
+    const provider = new MockCheckoutProvider();
+    const result = await provider.createCheckout(baseInput);
+
+    expect(result).toEqual({ contributionId: "contrib_1", redirectUrl: "/success/contrib_1" });
   });
 });

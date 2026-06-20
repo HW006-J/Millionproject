@@ -1,13 +1,22 @@
-import { PaymentStatus } from "@prisma/client";
 import { Confetti } from "@/components/Confetti";
+import { ProcessingStatus } from "@/components/ProcessingStatus";
 import { ShareActions } from "@/components/ShareActions";
 import { formatCents } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { resolveSuccessView } from "@/lib/successView";
 
 export const dynamic = "force-dynamic";
 
 interface SuccessPageProps {
   params: Promise<{ contributionId: string }>;
+}
+
+function MessagePage({ message }: { message: string }) {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+      <p className="text-lg text-neutral-400">{message}</p>
+    </main>
+  );
 }
 
 export default async function SuccessPage({ params }: SuccessPageProps) {
@@ -18,10 +27,24 @@ export default async function SuccessPage({ params }: SuccessPageProps) {
     include: { campaign: true },
   });
 
-  if (!contribution || contribution.paymentStatus !== PaymentStatus.CONFIRMED) {
+  if (!contribution) {
+    return <MessagePage message="We couldn't find that contribution." />;
+  }
+
+  const view = resolveSuccessView(contribution);
+
+  if (view === "not_found") {
+    return <MessagePage message="We couldn't find that contribution." />;
+  }
+
+  if (view === "failed") {
+    return <MessagePage message="That payment didn't go through. No charge was made." />;
+  }
+
+  if (view === "processing") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-        <p className="text-lg text-neutral-400">We couldn&apos;t find that contribution.</p>
+        <ProcessingStatus contributionId={contributionId} />
       </main>
     );
   }

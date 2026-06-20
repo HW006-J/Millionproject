@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { CAMPAIGN_SLUG } from "@/lib/campaign";
-import { MAX_CONTRIBUTION_CENTS, MIN_CONTRIBUTION_CENTS } from "@/lib/money";
-import { getCheckoutProvider, isMockModeAllowed } from "@/lib/payments";
+import { isValidCustomAmountCents } from "@/lib/money";
+import { getCheckoutProvider } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { validatePublicName } from "@/lib/publicName";
 
@@ -12,20 +12,20 @@ interface CheckoutRequestBody {
   isAnonymous?: unknown;
   customName?: unknown;
   hideAmountPublicly?: unknown;
+  submissionToken?: unknown;
 }
 
 function isValidAmountCents(value: unknown): value is number {
   return (
-    typeof value === "number" &&
-    Number.isInteger(value) &&
-    value >= MIN_CONTRIBUTION_CENTS &&
-    value <= MAX_CONTRIBUTION_CENTS
+    typeof value === "number" && Number.isInteger(value) && isValidCustomAmountCents(value)
   );
 }
 
 export async function POST(request: Request) {
-  // Checked first: never create a database row if mock mode isn't allowed.
-  if (!isMockModeAllowed()) {
+  // Checked first: never create a database row if no provider is safely available
+  // (covers mock mode being disallowed and Stripe mode being misconfigured).
+  const provider = getCheckoutProvider();
+  if (!provider) {
     return NextResponse.json({ error: "Checkout is not available." }, { status: 503 });
   }
 
@@ -51,6 +51,10 @@ export async function POST(request: Request) {
   }
 
   const hideAmountPublicly = body.hideAmountPublicly === true;
+  const submissionToken =
+    typeof body.submissionToken === "string" && body.submissionToken.length > 0
+      ? body.submissionToken
+      : null;
 
   const campaign = await prisma.campaign.findUnique({
     where: { slug: CAMPAIGN_SLUG },
@@ -60,17 +64,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Campaign is not available." }, { status: 503 });
   }
 
-  const provider = getCheckoutProvider();
-  if (!provider) {
-    return NextResponse.json({ error: "Checkout is not available." }, { status: 503 });
-  }
-
   const result = await provider.createCheckout({
     campaignId: campaign.id,
     amountCents: body.amountCents,
     isAnonymous: nameValidation.value.isAnonymous,
     publicName: nameValidation.value.publicName,
     hideAmountPublicly,
+    submissionToken,
   });
 
   return NextResponse.json(result);

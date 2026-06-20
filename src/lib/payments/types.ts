@@ -4,6 +4,7 @@ export interface CheckoutInput {
   isAnonymous: boolean;
   publicName: string | null;
   hideAmountPublicly: boolean;
+  submissionToken: string | null;
 }
 
 export interface CheckoutResult {

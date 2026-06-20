@@ -36,27 +36,43 @@ model Campaign {
 }
 
 model Contribution {
-  id                String          @id @default(cuid())
-  campaignId        String
-  campaign          Campaign        @relation(fields: [campaignId], references: [id])
-  amountCents       Int
-  currency          String          @default("usd")
-  paymentProvider   PaymentProvider
-  providerSessionId String?         @unique
-  providerPaymentId String?
-  paymentStatus     PaymentStatus   @default(PENDING)
-  publicName        String?
-  isAnonymous       Boolean         @default(true)
-  hideAmountPublicly Boolean        @default(false)
-  contributorNumber Int?
-  emailHash         String?
-  metadata          Json?
-  createdAt         DateTime        @default(now())
-  confirmedAt       DateTime?
-  refundedAt        DateTime?
+  id                  String          @id @default(cuid())
+  campaignId          String
+  campaign            Campaign        @relation(fields: [campaignId], references: [id])
+  amountCents         Int
+  currency            String          @default("usd")
+  paymentProvider     PaymentProvider
+  providerSessionId   String?         @unique
+  providerPaymentId   String?
+  paymentStatus       PaymentStatus   @default(PENDING)
+  publicName          String?
+  isAnonymous         Boolean         @default(true)
+  hideAmountPublicly  Boolean         @default(false)
+  contributorNumber   Int?
+  submissionToken     String?         @unique
+  refundedAmountCents Int             @default(0)
+  emailHash           String?
+  metadata            Json?
+  createdAt           DateTime        @default(now())
+  confirmedAt         DateTime?
+  refundedAt          DateTime?
 
   @@index([campaignId])
   @@index([paymentStatus])
   @@index([createdAt])
   @@index([confirmedAt])
+}
+
+model WebhookEvent {
+  id              String    @id @default(cuid())
+  provider        String
+  providerEventId String    @unique
+  eventType       String
+  processed       Boolean   @default(false)
+  claimedAt       DateTime?
+  receivedAt      DateTime  @default(now())
+  processedAt     DateTime?
+  failureReason   String?
+
+  @@index([eventType])
 }

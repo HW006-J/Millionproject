@@ -29,6 +29,10 @@ export function ContributionSelector() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Stable for the component's lifetime: lets the server recognize and
+  // deduplicate a retried or double-clicked submission.
+  const [submissionToken] = useState(() => crypto.randomUUID());
+
   const customCents = isCustom ? parseDollarsToCents(customInput) : null;
 
   const customError = useMemo(() => {
@@ -75,6 +79,7 @@ export function ContributionSelector() {
           isAnonymous: !showName,
           customName: showName ? customName : undefined,
           hideAmountPublicly,
+          submissionToken,
         }),
       });
 
