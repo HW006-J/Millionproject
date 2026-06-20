@@ -38,7 +38,7 @@ This creates the `Campaign`, `Contribution`, and `WebhookEvent` tables and inser
 
 ### Why two connection strings?
 
-Neon's pooled connection is best for the running app (many short-lived serverless connections); Prisma Migrate needs the direct connection for schema changes. `prisma.config.ts` uses `DIRECT_URL` for migrations; `src/lib/prisma.ts` uses `DATABASE_URL` for the app at runtime.
+Neon's pooled connection is best for the running app (many short-lived serverless connections); Prisma Migrate needs the direct connection for schema changes. `prisma.config.mjs` uses `DIRECT_URL` for migrations; `src/lib/prisma.ts` uses `DATABASE_URL` for the app at runtime. (Plain `.mjs`, not `.ts` — the file has no actual TypeScript syntax, and `.mjs` guarantees Node always loads it as an ES module without needing any TypeScript-loader step, which previously failed in Vercel's build environment.)
 
 ## Payments: mock mode vs. Stripe test mode
 
