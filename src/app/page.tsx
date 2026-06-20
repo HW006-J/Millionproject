@@ -1,4 +1,5 @@
 import { ContributionSelector } from "@/components/ContributionSelector";
+import { LegalFooter } from "@/components/LegalFooter";
 import { MomentumStats } from "@/components/MomentumStats";
 import { TotalDisplay } from "@/components/TotalDisplay";
 import { getCampaignStats } from "@/lib/campaign";
@@ -44,6 +45,8 @@ export default async function Home() {
           averageContributionCents={stats.averageContributionCents}
         />
       )}
+
+      <LegalFooter />
     </main>
   );
 }
