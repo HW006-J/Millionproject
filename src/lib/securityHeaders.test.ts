@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildContentSecurityPolicy, buildSecurityHeaders } from "@/lib/securityHeaders";
+import {
+  buildContentSecurityPolicy,
+  buildSecurityHeaders,
+  buildServiceWorkerHeaders,
+} from "@/lib/securityHeaders";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -64,6 +68,11 @@ describe("buildContentSecurityPolicy", () => {
     vi.stubEnv("NODE_ENV", "development");
     expect(buildContentSecurityPolicy()).not.toContain("upgrade-insecure-requests");
   });
+
+  it("explicitly allows the service worker and manifest from the same origin", () => {
+    expect(buildContentSecurityPolicy()).toContain("worker-src 'self'");
+    expect(buildContentSecurityPolicy()).toContain("manifest-src 'self'");
+  });
 });
 
 describe("buildSecurityHeaders", () => {
@@ -121,5 +130,29 @@ describe("buildSecurityHeaders", () => {
     vi.stubEnv("NODE_ENV", "development");
     const headers = buildSecurityHeaders();
     expect(headers.some((h) => h.key === "Strict-Transport-Security")).toBe(false);
+  });
+});
+
+describe("buildServiceWorkerHeaders", () => {
+  it("declares the correct content type", () => {
+    const headers = buildServiceWorkerHeaders();
+    expect(headers).toContainEqual({
+      key: "Content-Type",
+      value: "application/javascript; charset=utf-8",
+    });
+  });
+
+  it("is never cached by the browser or an intermediary", () => {
+    const headers = buildServiceWorkerHeaders();
+    expect(headers).toContainEqual({
+      key: "Cache-Control",
+      value: "no-cache, no-store, must-revalidate",
+    });
+  });
+
+  it("uses a restrictive CSP scoped to self only", () => {
+    const headers = buildServiceWorkerHeaders();
+    const csp = headers.find((h) => h.key === "Content-Security-Policy")?.value;
+    expect(csp).toBe("default-src 'self'; script-src 'self'");
   });
 });

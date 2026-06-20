@@ -186,13 +186,49 @@ Removing either would require **nonce-based CSP**, which Next.js's own docs are 
 
 There is currently no distributed rate limiter on `/api/checkout`. A durable, correct implementation needs a shared store (e.g. Redis/Upstash) so limits hold across serverless instances — an in-memory counter in a serverless function would reset per cold start and give a false sense of protection, so one wasn't added. Existing protections (server-side amount/name validation, the campaign-pause gate, and the Phase 4 duplicate-checkout submission token) remain in place. **Before a real public launch, add a distributed rate limiter backed by an external store** — this is a deployment requirement, not something this phase silently worked around.
 
+## PWA support (Phase 6A)
+
+**Scope of this stage:** installability and a basic offline fallback only. No push notifications, no background sync, no offline payment functionality of any kind — none of that exists, and none of it is planned for this stage.
+
+- **Install requirements:** a web app manifest (`src/app/manifest.ts`, served at `/manifest.webmanifest`) with `display: "standalone"`, a black theme/background color matching the site, and 192×192/512×512 PNG icons. `src/app/icon.tsx` and `src/app/apple-icon.tsx` additionally generate the browser favicon and Apple touch icon (via `next/og`) — these are separate from, not a replacement for, the manifest's own static icon files.
+- **Placeholder-icon status:** `public/icons/icon-192.png` and `icon-512.png` are a temporary black-and-white "1M" mark, generated from a hand-written SVG and rasterized with macOS's `sips` — no new package, no third-party artwork. **These are explicitly placeholders** and should be replaced with real branding before any real launch.
+- **HTTPS requirement:** service workers only register over HTTPS (or `localhost`). In production this requires the deployment to actually terminate HTTPS — the same requirement already noted for HSTS above.
+- **Service worker (`public/sw.js`):** registered only in production (never in dev, to avoid fighting Turbopack/HMR), with `scope: "/"`, `type: "module"`, and `updateViaCache: "none"`. Registration failures are swallowed silently — the entire PWA layer is enhancement-only, and every feature must keep working identically without it.
+- **Update behavior:** `updateViaCache: "none"` means the browser never uses its HTTP cache for the service worker script itself, so a new deployment's `sw.js` is always fetched fresh when the browser checks for updates. Cache names are application-prefixed (`one-million-`) and versioned (`CACHE_VERSION` in `public/sw-cache-policy.js`); on activation, only *this app's own* obsolete caches are deleted — an unrelated cache on the same origin (a different app, library, or future feature) is never touched, even if it doesn't match the current version.
+
+### Exact caching policy
+
+Allowlist-based, not denylist-based — outside of the two cases below, the service worker never calls `respondWith()` at all, so every other request is handled by the browser exactly as if no service worker were installed:
+
+1. **Navigation requests** (normal page loads): always try the network first. Only if that fetch genuinely fails (no connectivity) does it fall back to the precached `/offline` page — a stale cached copy of a normal page is never served.
+2. **Hashed `/_next/static/` assets**: cache-first, populated only after a successful same-origin 2xx response (never precached at install time, since their filenames are unknown until build). Non-GET, cross-origin, failed, redirected, and opaque responses are never cached.
+
+**Never cached, by construction:** `/admin` and every admin sub-route, `/api` and every API sub-route (checkout, webhooks, contribution-status, share, campaign stats), `/mock-checkout`, `/success`, and any non-GET request anywhere (so CSV exports, form submissions, and the Stripe redirect are all untouched).
+
+**Offline fallback limitations:** `/offline` is static and deliberately shows no campaign total, no payment controls, and no admin links — anything cached there could go stale and mislead. It only states that connectivity is required and offers a link back to the homepage.
+
+### Manual browser verification (where DevTools are available)
+
+I don't have a browser tool in this environment, so the following need to be checked by hand:
+
+1. Open DevTools → **Application → Manifest** — confirm it loads with the name, icons, and `standalone` display.
+2. **Application → Service Workers** — confirm `/sw.js` registers in a production build (`npm run build && npm run start`) and does **not** register under `npm run dev`.
+3. **Application → Cache Storage** — confirm only `one-million-precache-v1` and `one-million-runtime-v1` exist, and that neither ever contains an `/admin`, `/api`, `/mock-checkout`, or `/success` entry.
+4. With the app open online, go to the **Network** tab, throttle to **Offline**, then navigate to a page that isn't cached — confirm `/offline` appears, with no stale total or payment control.
+5. Go back online and confirm normal navigation, checkout, and admin login all still work exactly as before.
+
+## Known deferred risk: rate limiting on `/api/checkout`
+
+There is currently no distributed rate limiter on `/api/checkout`. A durable, correct implementation needs a shared store (e.g. Redis/Upstash) so limits hold across serverless instances — an in-memory counter in a serverless function would reset per cold start and give a false sense of protection, so one wasn't added. Existing protections (server-side amount/name validation, the campaign-pause gate, and the Phase 4 duplicate-checkout submission token) remain in place. **Before a real public launch, add a distributed rate limiter backed by an external store** — this is a deployment requirement, not something this phase silently worked around.
+
 ## Project structure
 
-- `src/app` — pages and API routes (checkout, Stripe webhook, contribution status, share, admin), plus the public legal pages
-- `src/components` — landing page UI, `legal/` shared layout for the legal pages
+- `src/app` — pages and API routes (checkout, Stripe webhook, contribution status, share, admin), plus the public legal pages, the offline fallback page, and the PWA manifest/icon metadata routes
+- `src/components` — landing page UI, `legal/` shared layout for the legal pages, `ServiceWorkerRegistration` (production-only)
 - `src/lib` — money formatting, Prisma client, campaign data access, payment providers, webhook handlers, admin auth, environment validation, security headers
-- `src/proxy.ts` — optimistic admin-route redirect (not the security boundary — see above)
-- `next.config.ts` — centralized security response headers and CSP
+- `src/proxy.ts` — optimistic admin-route redirect (not the security boundary — see above); its matcher only covers `/admin/:path*`, so it never interferes with `/sw.js`, the manifest, icons, or `/offline`
+- `next.config.ts` — centralized security response headers and CSP, plus `/sw.js`'s own restrictive headers
+- `public/sw.js` / `public/sw-cache-policy.js` — the service worker and its cache-policy logic (one shared file, imported by both the worker and its tests — no duplicated allowlist)
 - `prisma/schema.prisma` — database schema
 - `prisma/seed.ts` — seeds the starting campaign
 - `scripts/create-admin.ts` — one-time admin account bootstrap
@@ -220,4 +256,4 @@ After setup, a quick way to confirm everything is wired up correctly:
 
 ## Current status
 
-Implemented through Phase 5C of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling, admin authentication, the admin dashboard (metrics, charts, contribution management with name moderation, campaign pause/resume and target editing, CSV export), public legal/transparency pages, centralized security response headers and a tested Content Security Policy, and centralized environment validation. This project is **not** legally ready to accept real payments — see "Legal and transparency pages" above — and PWA support and final documentation are not built yet.
+Implemented through Phase 6A of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling, admin authentication, the admin dashboard (metrics, charts, contribution management with name moderation, campaign pause/resume and target editing, CSV export), public legal/transparency pages, centralized security response headers and a tested Content Security Policy, centralized environment validation, a full Phase 5 integrated verification pass, and the PWA foundation (manifest, placeholder icons, offline fallback, conservative service worker). This project is **not** legally ready to accept real payments — see "Legal and transparency pages" above. Performance work, metadata/social-sharing presentation, the broader accessibility/responsive review, and final deployment documentation (Phase 6B onward) are not built yet.

@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { buildSecurityHeaders } from "./src/lib/securityHeaders";
+import { buildSecurityHeaders, buildServiceWorkerHeaders } from "./src/lib/securityHeaders";
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
         // Same for admin pages and the CSV export.
         source: "/admin/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+      {
+        // More specific than "/(.*)" above, so this overrides its
+        // Content-Security-Policy and adds the rest on top.
+        source: "/sw.js",
+        headers: buildServiceWorkerHeaders(),
       },
     ];
   },

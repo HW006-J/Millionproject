@@ -32,6 +32,11 @@ export function buildContentSecurityPolicy(): string {
     "style-src 'self' 'unsafe-inline'",
     `script-src 'self' 'unsafe-inline'${production ? "" : " 'unsafe-eval'"}`,
     "connect-src 'self'",
+    // Explicit rather than relying on the default-src fallback chain (both
+    // already resolve to 'self' implicitly) — makes the service worker and
+    // manifest's allowed origins auditable on their own, not just inferred.
+    "worker-src 'self'",
+    "manifest-src 'self'",
   ];
 
   if (production) {
@@ -73,4 +78,18 @@ export function buildSecurityHeaders(): HeaderEntry[] {
   }
 
   return headers;
+}
+
+/**
+ * Route-specific headers for /sw.js alone, layered on top of (and
+ * overriding, for the keys it sets) the general headers above. Tighter
+ * than the main CSP since the service worker has no need for styles,
+ * fonts, images, or anything beyond loading its own same-origin script.
+ */
+export function buildServiceWorkerHeaders(): HeaderEntry[] {
+  return [
+    { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+    { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+    { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+  ];
 }
