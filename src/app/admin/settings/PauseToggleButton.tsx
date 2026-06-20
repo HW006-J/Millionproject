@@ -22,7 +22,11 @@ export function PauseToggleButton({ isActive }: PauseToggleButtonProps) {
       >
         {isActive ? "Pause new contributions" : "Resume new contributions"}
       </button>
-      {state.error && <p className="text-xs text-neutral-500">{state.error}</p>}
+      {state.error && (
+        <p role="alert" className="text-xs text-neutral-500">
+          {state.error}
+        </p>
+      )}
     </form>
   );
 }

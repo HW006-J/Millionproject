@@ -35,7 +35,11 @@ export function TargetEditForm({ currentTargetDollars }: TargetEditFormProps) {
           {isPending ? "Saving…" : "Update target"}
         </button>
       </div>
-      {state.error && <p className="text-xs text-neutral-500">{state.error}</p>}
+      {state.error && (
+        <p role="alert" className="text-xs text-neutral-500">
+          {state.error}
+        </p>
+      )}
     </form>
   );
 }

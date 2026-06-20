@@ -18,6 +18,11 @@ export type RefundContributionResult =
  * apply the same delta twice. Amounts are clamped so neither the
  * contribution's refunded total nor the campaign total can go negative or
  * exceed what was actually paid.
+ *
+ * Deliberately never touches Campaign.confirmedContributionCount — that
+ * field is a lifetime count used for contributor numbering (see the admin
+ * dashboard's "Lifetime count" sublabel) and is never decremented by a
+ * partial or full refund, even though confirmedAmountCents is.
  */
 export async function refundContribution(
   contributionId: string,

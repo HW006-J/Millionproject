@@ -55,6 +55,12 @@ export default function AboutPage() {
         </ul>
       </LegalSection>
 
+      <LegalSection heading="Who receives the funds">
+        <p className={legal.legalEntityNameConfigured ? undefined : "text-neutral-500"}>
+          Funds are paid to {legal.legalEntityName}.
+        </p>
+      </LegalSection>
+
       <LegalSection heading="Intended use of funds">
         <p className="text-neutral-500">
           [INTENDED USE OF FUNDS] — not yet configured. This will be stated

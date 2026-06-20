@@ -24,7 +24,11 @@ export function HideNameButton({ contributionId, hidden }: HideNameButtonProps) 
       >
         {hidden ? "Restore name" : "Hide name"}
       </button>
-      {state.error && <span className="text-neutral-500">{state.error}</span>}
+      {state.error && (
+        <span role="alert" className="text-neutral-500">
+          {state.error}
+        </span>
+      )}
     </form>
   );
 }

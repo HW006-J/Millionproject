@@ -34,6 +34,8 @@ This project uses PostgreSQL via Prisma. The recommended option is a free [Neon]
 
 This creates the `Campaign`, `Contribution`, and `WebhookEvent` tables and inserts a single campaign (`ONE MILLION`, target `$1,000,000`, confirmed amount `$0`). No fake contributions are ever seeded.
 
+**In production or CI, use `npx prisma migrate deploy` instead of `migrate dev`.** `migrate dev` is a local development command — it can prompt interactively and is not meant to run unattended. `migrate deploy` applies all pending migrations non-interactively and is the safe command for a real deployment.
+
 ### Why two connection strings?
 
 Neon's pooled connection is best for the running app (many short-lived serverless connections); Prisma Migrate needs the direct connection for schema changes. `prisma.config.ts` uses `DIRECT_URL` for migrations; `src/lib/prisma.ts` uses `DATABASE_URL` for the app at runtime.
@@ -70,6 +72,10 @@ Neon's pooled connection is best for the running app (many short-lived serverles
 7. On the Stripe-hosted Checkout page, use the test card `4242 4242 4242 4242`, any future expiry date, any 3-digit CVC, and any postal code to simulate a successful payment.
 
 To go back to mock mode at any time, set `PAYMENTS_MODE=mock` and restart the dev server.
+
+### Webhooks in production differ from local `stripe listen`
+
+`stripe listen` is a **local-only** convenience — it tunnels events to your machine and prints a *new* signing secret every time you restart it. In a real deployment, there is no listener process: instead, register the deployed webhook URL (e.g. `https://yourdomain.com/api/webhooks/stripe`) directly in the Stripe Dashboard under **Developers → Webhooks**, selecting `checkout.session.completed`, `payment_intent.payment_failed`, and `charge.refunded`. That registration gives you a **separate, static** `whsec_...` signing secret — set that (not anything from `stripe listen`) as `STRIPE_WEBHOOK_SECRET` in your production environment.
 
 ## Admin authentication
 
@@ -111,7 +117,7 @@ Once logged in:
 - **`/admin`** — campaign totals (confirmed/pending/failed/refunded, all in integer cents under the hood), progress toward the target, contributions created today/in the last 7 days (UTC), a recorded-webhook-failures count, simple daily/hourly activity charts (plain HTML/CSS bars — no charting library), and the 10 most recent contributions.
 - **`/admin/contributions`** — the full contribution list, paginated, filterable by status, newest first. Each row shows the contributor's actual submitted name (for admin audit) plus a separate "hidden from public" indicator, and a button to hide/restore that name from public-facing pages.
 - **`/admin/settings`** — pause/resume the campaign, and edit the target amount.
-- **`/admin/export`** — downloads a CSV of all contributions (admin-only, never cached).
+- **`/admin/export`** — downloads a CSV of all contributions (admin-only, never cached). Every field is escaped against formula injection (a leading `=`, `+`, `-`, or `@` — even after leading spaces/tabs/line breaks — gets a neutralizing `'` prefix) so opening the export in Excel/Sheets can't execute a formula from a submitted display name.
 
 A few things worth knowing about how these work:
 
@@ -199,6 +205,18 @@ npm run build   # production build
 npm run lint    # run ESLint
 npm run test    # run the Vitest suite
 ```
+
+## Final local verification checklist
+
+After setup, a quick way to confirm everything is wired up correctly:
+
+1. `npm run lint && npm run test && npm run build` all succeed.
+2. The landing page loads and the contribution selector renders.
+3. In mock mode, completing a mock checkout reaches `/success/[id]` and the total updates.
+4. `/admin/login` loads; logging in with the bootstrap account reaches `/admin`.
+5. Visiting any `/admin/*` page while logged out redirects to `/admin/login`.
+6. `/about`, `/terms`, `/privacy`, `/refunds` all load and show either your configured `LEGAL_ENTITY_NAME`/`CONTACT_EMAIL` or the bracketed placeholders.
+7. `curl -I http://localhost:3000` shows `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options`, and `Content-Security-Policy`.
 
 ## Current status
 
