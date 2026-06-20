@@ -71,13 +71,48 @@ Neon's pooled connection is best for the running app (many short-lived serverles
 
 To go back to mock mode at any time, set `PAYMENTS_MODE=mock` and restart the dev server.
 
+## Admin authentication
+
+There is a single admin account, protected by a hand-written session (no public registration, no password reset, no roles — by design, for this single-admin app). The dashboard itself isn't built yet; this stage only ships login, logout, and a placeholder protected page proving the authentication works.
+
+### One-time setup
+
+1. Generate a session-signing secret and put it in `.env.local` (not `.env`) as `AUTH_SECRET`:
+   ```bash
+   openssl rand -base64 32
+   ```
+   This must be at least 32 characters. Admin login fails closed (refuses to issue or verify any session) if it's missing or too short. Like the rest of your local secrets, keep it in `.env.local`, never `.env`.
+2. Temporarily set two more variables, also in `.env.local`, not `.env` — pick your own values, not the ones shown here:
+   ```
+   ADMIN_EMAIL=
+   ADMIN_INITIAL_PASSWORD=
+   ```
+   `ADMIN_INITIAL_PASSWORD` is bootstrap-only: the script below reads it once to set the account's password, and the running application never reads this variable again afterward (the database is the source of truth for the admin's email and password from then on).
+3. Run the bootstrap script:
+   ```bash
+   npx tsx scripts/create-admin.ts
+   ```
+   It refuses to run at all if either variable is missing, and never prints either value.
+4. **Immediately remove `ADMIN_INITIAL_PASSWORD` from `.env.local`.** It has no further use, and leaving it there is unnecessary exposure.
+5. Visit `/admin/login` and sign in with the email and password you just set.
+
+Re-running the script later (with a new `ADMIN_INITIAL_PASSWORD`) updates the same account's password and clears any active lockout.
+
+### How sessions work
+
+- A signed (HMAC-SHA-256), httpOnly, `SameSite=Strict` cookie — `Secure` in production — valid for 8 hours.
+- Five wrong passwords in a row locks the account for 15 minutes (tracked in the database, so it survives restarts); a correct login resets the count. Login responses never reveal whether the email exists, the password was wrong, or the account is locked — the message is identical in all three cases.
+- `src/proxy.ts` does a fast, cookie-only redirect for obviously unauthenticated requests to `/admin/*`, but it is **not** the real security boundary — every protected page, Server Action, and Route Handler calls `requireAdmin()`/`verifyAdminSession()` (`src/lib/admin/auth.ts`) independently.
+
 ## Project structure
 
-- `src/app` — pages and API routes (checkout, Stripe webhook, contribution status, share)
+- `src/app` — pages and API routes (checkout, Stripe webhook, contribution status, share, admin)
 - `src/components` — landing page UI
-- `src/lib` — money formatting, Prisma client, campaign data access, payment providers, webhook handlers
+- `src/lib` — money formatting, Prisma client, campaign data access, payment providers, webhook handlers, admin auth
+- `src/proxy.ts` — optimistic admin-route redirect (not the security boundary — see above)
 - `prisma/schema.prisma` — database schema
 - `prisma/seed.ts` — seeds the starting campaign
+- `scripts/create-admin.ts` — one-time admin account bootstrap
 
 ## Scripts
 
@@ -90,4 +125,4 @@ npm run test    # run the Vitest suite
 
 ## Current status
 
-Implemented through Phase 4 of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, and Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling. No authentication or admin dashboard yet.
+Implemented through Phase 4, plus Phase 5A (admin authentication foundation) of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling, and admin login/logout with a protected placeholder page. The admin dashboard itself, contribution moderation, campaign settings, CSV export, legal pages, and CSP are not built yet.
