@@ -4,9 +4,11 @@ import Link from "next/link";
 const LEGAL_LINKS = [
   { href: "/about", label: "About" },
   { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/refunds", label: "Refunds" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/refunds", label: "Refund Policy" },
 ];
+
+const LAST_UPDATED = "20 June 2026";
 
 interface LegalPageLayoutProps {
   title: string;
@@ -29,19 +31,11 @@ export function LegalPageLayout({ title, children }: LegalPageLayoutProps) {
         </nav>
       </div>
 
-      <div
-        role="note"
-        className="rounded-2xl border border-dashed border-neutral-600 bg-neutral-900/60 px-4 py-3 text-sm text-neutral-300"
-      >
-        <strong className="text-white">Development-stage draft.</strong> This
-        page is a placeholder template for a project still in sandbox/test
-        mode. It has not been reviewed by a lawyer, is not legal advice, and
-        must not be relied on before professional legal review and before
-        accepting real payments.
-      </div>
-
       <article className="flex flex-col gap-6 text-sm leading-7 text-neutral-300">
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-white">{title}</h1>
+          <p className="text-xs text-neutral-500">Last updated: {LAST_UPDATED}</p>
+        </div>
         {children}
       </article>
 

@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  CONTACT_EMAIL_PLACEHOLDER,
-  LEGAL_ENTITY_NAME_PLACEHOLDER,
-  getEnvironmentReport,
-  getLegalDisplayConfig,
-} from "@/lib/env";
+import { getEnvironmentReport } from "@/lib/env";
 
 describe("getEnvironmentReport", () => {
   afterEach(() => {
@@ -82,46 +77,5 @@ describe("getEnvironmentReport", () => {
       { name: "LEGAL_ENTITY_NAME", configured: false },
       { name: "CONTACT_EMAIL", configured: false },
     ]);
-  });
-});
-
-describe("getLegalDisplayConfig", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("renders explicit placeholders when nothing is configured", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", "");
-    vi.stubEnv("CONTACT_EMAIL", "");
-    const config = getLegalDisplayConfig();
-    expect(config).toEqual({
-      legalEntityName: LEGAL_ENTITY_NAME_PLACEHOLDER,
-      legalEntityNameConfigured: false,
-      contactEmail: CONTACT_EMAIL_PLACEHOLDER,
-      contactEmailConfigured: false,
-    });
-  });
-
-  it("renders configured values when present", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", "Example Holdings LLC");
-    vi.stubEnv("CONTACT_EMAIL", "hello@example.test");
-    const config = getLegalDisplayConfig();
-    expect(config).toEqual({
-      legalEntityName: "Example Holdings LLC",
-      legalEntityNameConfigured: true,
-      contactEmail: "hello@example.test",
-      contactEmailConfigured: true,
-    });
-  });
-
-  it("treats whitespace-only values as not configured", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", "   ");
-    const config = getLegalDisplayConfig();
-    expect(config.legalEntityNameConfigured).toBe(false);
-    expect(config.legalEntityName).toBe(LEGAL_ENTITY_NAME_PLACEHOLDER);
-  });
-
-  it("never throws regardless of configuration state", () => {
-    expect(() => getLegalDisplayConfig()).not.toThrow();
   });
 });

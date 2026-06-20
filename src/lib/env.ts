@@ -45,29 +45,3 @@ export function getEnvironmentReport(): EnvironmentReport {
   };
 }
 
-export const LEGAL_ENTITY_NAME_PLACEHOLDER = "[LEGAL ENTITY NAME]";
-export const CONTACT_EMAIL_PLACEHOLDER = "[CONTACT EMAIL]";
-
-export interface LegalDisplayConfig {
-  legalEntityName: string;
-  legalEntityNameConfigured: boolean;
-  contactEmail: string;
-  contactEmailConfigured: boolean;
-}
-
-/**
- * Always returns a renderable string for both values — a real configured
- * value, or an explicit bracketed placeholder. Never throws, never crashes
- * a public page just because legal configuration hasn't been supplied yet.
- */
-export function getLegalDisplayConfig(): LegalDisplayConfig {
-  const legalEntityNameRaw = process.env.LEGAL_ENTITY_NAME?.trim();
-  const contactEmailRaw = process.env.CONTACT_EMAIL?.trim();
-
-  return {
-    legalEntityName: legalEntityNameRaw || LEGAL_ENTITY_NAME_PLACEHOLDER,
-    legalEntityNameConfigured: Boolean(legalEntityNameRaw),
-    contactEmail: contactEmailRaw || CONTACT_EMAIL_PLACEHOLDER,
-    contactEmailConfigured: Boolean(contactEmailRaw),
-  };
-}

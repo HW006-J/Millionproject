@@ -3,8 +3,8 @@ import Link from "next/link";
 const LEGAL_LINKS = [
   { href: "/about", label: "About" },
   { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/refunds", label: "Refunds" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/refunds", label: "Refund Policy" },
 ];
 
 /**

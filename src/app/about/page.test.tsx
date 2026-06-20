@@ -27,9 +27,14 @@ describe("AboutPage", () => {
     expect(html).not.toMatch(/\[[A-Z ]+\]/);
   });
 
-  it("includes the development-stage draft banner", () => {
+  it("no longer shows the development-stage draft banner", () => {
     const html = renderToStaticMarkup(AboutPage());
-    expect(html).toContain("Development-stage draft");
+    expect(html).not.toContain("Development-stage draft");
+  });
+
+  it("shows a last-updated date", () => {
+    const html = renderToStaticMarkup(AboutPage());
+    expect(html).toContain("Last updated: 20 June 2026");
   });
 
   it("includes accessible navigation links to the other legal pages", () => {

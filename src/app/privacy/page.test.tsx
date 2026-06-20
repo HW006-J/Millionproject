@@ -1,48 +1,74 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PrivacyPage from "@/app/privacy/page";
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
 
 describe("PrivacyPage", () => {
   it("renders successfully", () => {
     expect(() => renderToStaticMarkup(PrivacyPage())).not.toThrow();
   });
 
-  it("truthfully states there is no analytics/advertising tracking", () => {
+  it("no longer shows the development-stage draft banner", () => {
     const html = renderToStaticMarkup(PrivacyPage());
-    expect(html).toContain("does not currently use advertising or analytics");
+    expect(html).not.toContain("Development-stage draft");
+    expect(html).not.toContain("Draft");
   });
 
-  it("explicitly disclaims absolute security or guaranteed deletion, rather than promising them", () => {
+  it("no longer shows any bracketed placeholder", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).not.toMatch(/\[[A-Z ]+\]/);
+  });
+
+  it("names John White as responsible for personal information", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).toContain("The person responsible for the handling of personal information for this project is John White.");
+  });
+
+  it("never claims ONE MILLION stores complete card information", () => {
     const html = renderToStaticMarkup(PrivacyPage());
     const lower = html.toLowerCase();
-    expect(lower).toContain("do not claim absolute security");
-    expect(lower).toContain("guaranteed deletion");
-    // Never asserts security/deletion as an unqualified promise.
-    expect(lower).not.toMatch(/we guarantee/);
+    expect(lower).not.toContain("we store your card");
+    expect(html).toContain("are not received or stored by ONE MILLION");
   });
 
-  it("shows explicit placeholders for retention and data-rights process", () => {
+  it("accurately describes cookies/technical storage based on the real implementation", () => {
     const html = renderToStaticMarkup(PrivacyPage());
-    expect(html).toContain("[DATA RETENTION POLICY]");
-    expect(html).toContain("[DATA RIGHTS PROCESS]");
+    expect(html).toContain(
+      "ONE MILLION uses only technical storage that is reasonably necessary to operate and secure the website.",
+    );
+    expect(html).not.toContain("does not use any cookies");
   });
 
-  it("escapes a script-like CONTACT_EMAIL value rather than rendering it as markup", () => {
-    vi.stubEnv("CONTACT_EMAIL", "<script>alert(1)</script>@example.test");
+  it("disclaims, rather than promises, complete security", () => {
     const html = renderToStaticMarkup(PrivacyPage());
-    expect(html).not.toContain("<script>alert(1)</script>");
-    expect(html).toContain("&lt;script&gt;");
+    expect(html).toContain("no internet service or storage system can guarantee complete security");
   });
 
-  it("escapes a script-like LEGAL_ENTITY_NAME value rather than rendering it as markup", () => {
-    vi.stubEnv("LEGAL_ENTITY_NAME", '<img src=x onerror="alert(1)">');
+  it("does not claim the policy has received professional legal approval", () => {
     const html = renderToStaticMarkup(PrivacyPage());
-    expect(html).not.toContain('<img src=x onerror="alert(1)">');
-    expect(html).toContain("&lt;img");
+    expect(html.toLowerCase()).not.toContain("reviewed by a lawyer");
+    expect(html.toLowerCase()).not.toContain("legal advice");
+  });
+
+  it("mentions the named service providers", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).toContain("Stripe for payment processing");
+    expect(html).toContain("Vercel for website hosting and delivery");
+    expect(html).toContain("Neon for database hosting");
+  });
+
+  it("mentions the UK Information Commissioner's Office for data-rights escalation", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).toContain("UK Information Commissioner");
+  });
+
+  it("shows the contact email", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).toContain("millionproject1m@gmail.com");
+  });
+
+  it("shows a last-updated date", () => {
+    const html = renderToStaticMarkup(PrivacyPage());
+    expect(html).toContain("Last updated: 20 June 2026");
   });
 
   it("includes accessible navigation links to the other legal pages", () => {
