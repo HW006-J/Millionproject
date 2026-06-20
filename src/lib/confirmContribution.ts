@@ -6,7 +6,6 @@ export type ConfirmContributionResult =
   | { status: "already_confirmed"; contributionId: string }
   | { status: "not_found" }
   | { status: "provider_mismatch" }
-  | { status: "campaign_inactive" }
   | { status: "invalid_state" };
 
 /**
@@ -14,6 +13,13 @@ export type ConfirmContributionResult =
  * Safe to call more than once for the same contribution: the conditional
  * `updateMany` only succeeds for the first caller, so concurrent or repeated
  * calls fall through to "already_confirmed" without double-counting.
+ *
+ * Deliberately does NOT check Campaign.isActive. Pausing a campaign
+ * (Phase 5B) only gates the creation of new Checkout Sessions/mock
+ * submissions — it must never block confirming a payment Stripe has
+ * already collected for a contribution created before the pause. The
+ * "is this campaign accepting new contributions" decision belongs solely
+ * to the checkout-creation path, not here.
  */
 export async function confirmContribution(
   contributionId: string,
@@ -22,7 +28,6 @@ export async function confirmContribution(
   return prisma.$transaction(async (tx) => {
     const contribution = await tx.contribution.findUnique({
       where: { id: contributionId },
-      include: { campaign: true },
     });
 
     if (!contribution) {
@@ -31,10 +36,6 @@ export async function confirmContribution(
 
     if (contribution.paymentProvider !== expectedProvider) {
       return { status: "provider_mismatch" };
-    }
-
-    if (!contribution.campaign.isActive) {
-      return { status: "campaign_inactive" };
     }
 
     if (contribution.paymentStatus === PaymentStatus.CONFIRMED) {

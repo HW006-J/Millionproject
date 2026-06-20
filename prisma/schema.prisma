@@ -51,6 +51,7 @@ model Contribution {
   contributorNumber   Int?
   submissionToken     String?         @unique
   refundedAmountCents Int             @default(0)
+  publicNameHidden    Boolean         @default(false)
   emailHash           String?
   metadata            Json?
   createdAt           DateTime        @default(now())

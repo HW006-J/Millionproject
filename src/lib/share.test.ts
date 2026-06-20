@@ -25,6 +25,7 @@ describe("getShareData", () => {
       amountCents: 500,
       publicName: "Henry",
       isAnonymous: false,
+      publicNameHidden: false,
       hideAmountPublicly: false,
       contributorNumber: 1,
       confirmedAt: null,
@@ -52,6 +53,7 @@ describe("getShareData", () => {
       amountCents: 500,
       publicName: "Henry",
       isAnonymous: false,
+      publicNameHidden: false,
       hideAmountPublicly: true,
       contributorNumber: 2,
       confirmedAt,
@@ -74,12 +76,61 @@ describe("getShareData", () => {
     });
   });
 
+  it("suppresses the display name to Anonymous when an admin has hidden it, even though the contributor wasn't anonymous", async () => {
+    const confirmedAt = new Date("2026-01-01T00:00:00.000Z");
+    mockFindUniqueContribution.mockResolvedValue({
+      amountCents: 500,
+      publicName: "Henry",
+      isAnonymous: false,
+      publicNameHidden: true,
+      hideAmountPublicly: false,
+      contributorNumber: 3,
+      confirmedAt,
+      paymentStatus: PaymentStatus.CONFIRMED,
+      campaignId: "camp_1",
+    });
+    mockFindUniqueCampaign.mockResolvedValue({
+      confirmedAmountCents: 5000,
+      targetAmountCents: 100_000_000,
+    });
+
+    const result = await getShareData("contrib_1");
+
+    expect(result?.displayName).toBe("Anonymous");
+    // The amount itself is unaffected by name moderation.
+    expect(result?.amountCents).toBe(500);
+  });
+
+  it("keeps an anonymous contribution Anonymous regardless of the moderation flag", async () => {
+    const confirmedAt = new Date("2026-01-01T00:00:00.000Z");
+    mockFindUniqueContribution.mockResolvedValue({
+      amountCents: 500,
+      publicName: null,
+      isAnonymous: true,
+      publicNameHidden: false,
+      hideAmountPublicly: false,
+      contributorNumber: 4,
+      confirmedAt,
+      paymentStatus: PaymentStatus.CONFIRMED,
+      campaignId: "camp_1",
+    });
+    mockFindUniqueCampaign.mockResolvedValue({
+      confirmedAmountCents: 5000,
+      targetAmountCents: 100_000_000,
+    });
+
+    const result = await getShareData("contrib_1");
+
+    expect(result?.displayName).toBe("Anonymous");
+  });
+
   it("shows Anonymous for anonymous contributions and exposes only approved fields", async () => {
     const confirmedAt = new Date("2026-01-01T00:00:00.000Z");
     mockFindUniqueContribution.mockResolvedValue({
       amountCents: 1000,
       publicName: null,
       isAnonymous: true,
+      publicNameHidden: false,
       hideAmountPublicly: false,
       contributorNumber: 5,
       confirmedAt,

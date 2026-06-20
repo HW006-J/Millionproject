@@ -73,7 +73,7 @@ To go back to mock mode at any time, set `PAYMENTS_MODE=mock` and restart the de
 
 ## Admin authentication
 
-There is a single admin account, protected by a hand-written session (no public registration, no password reset, no roles — by design, for this single-admin app). The dashboard itself isn't built yet; this stage only ships login, logout, and a placeholder protected page proving the authentication works.
+There is a single admin account, protected by a hand-written session (no public registration, no password reset, no roles — by design, for this single-admin app).
 
 ### One-time setup
 
@@ -104,6 +104,21 @@ Re-running the script later (with a new `ADMIN_INITIAL_PASSWORD`) updates the sa
 - Five wrong passwords in a row locks the account for 15 minutes (tracked in the database, so it survives restarts); a correct login resets the count. Login responses never reveal whether the email exists, the password was wrong, or the account is locked — the message is identical in all three cases.
 - `src/proxy.ts` does a fast, cookie-only redirect for obviously unauthenticated requests to `/admin/*`, but it is **not** the real security boundary — every protected page, Server Action, and Route Handler calls `requireAdmin()`/`verifyAdminSession()` (`src/lib/admin/auth.ts`) independently.
 
+## Admin dashboard
+
+Once logged in:
+
+- **`/admin`** — campaign totals (confirmed/pending/failed/refunded, all in integer cents under the hood), progress toward the target, contributions created today/in the last 7 days (UTC), a recorded-webhook-failures count, simple daily/hourly activity charts (plain HTML/CSS bars — no charting library), and the 10 most recent contributions.
+- **`/admin/contributions`** — the full contribution list, paginated, filterable by status, newest first. Each row shows the contributor's actual submitted name (for admin audit) plus a separate "hidden from public" indicator, and a button to hide/restore that name from public-facing pages.
+- **`/admin/settings`** — pause/resume the campaign, and edit the target amount.
+- **`/admin/export`** — downloads a CSV of all contributions (admin-only, never cached).
+
+A few things worth knowing about how these work:
+
+- **Pausing only blocks *new* checkout creation.** It never blocks confirming a payment Stripe already collected, processing a refund, or reconciling an existing contribution — `confirmContribution()` deliberately does not check the campaign's pause state.
+- **Hiding a name** only ever affects public-facing output (the share endpoint, etc.) — admins always see the real submitted name in the dashboard, contributions list, and CSV, for audit purposes. An anonymous contribution stays anonymous regardless of this flag.
+- **No admin control can mark a payment as paid, confirm a pending contribution, or edit a confirmed total/contributor count.** Those values are only ever touched by the verified payment and refund logic.
+
 ## Project structure
 
 - `src/app` — pages and API routes (checkout, Stripe webhook, contribution status, share, admin)
@@ -125,4 +140,4 @@ npm run test    # run the Vitest suite
 
 ## Current status
 
-Implemented through Phase 4, plus Phase 5A (admin authentication foundation) of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling, and admin login/logout with a protected placeholder page. The admin dashboard itself, contribution moderation, campaign settings, CSV export, legal pages, and CSP are not built yet.
+Implemented through Phase 5B of the project spec (see `PROJECT_SPEC.md`): landing page UI, database-backed campaign statistics, a full mock contribution flow, Stripe-hosted Checkout in test mode with verified, idempotent webhooks and refund handling, admin authentication, and the admin dashboard (metrics, charts, contribution management with name moderation, campaign pause/resume and target editing, CSV export). Legal pages, security headers/CSP, PWA support, and final documentation are not built yet.

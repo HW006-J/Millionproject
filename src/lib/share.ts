@@ -16,6 +16,8 @@ export interface ShareData {
  * Returns only fields that are safe to expose publicly. Never returns data
  * for a contribution that isn't CONFIRMED (no pending/failed contributions),
  * and never includes email hashes, provider IDs, or other private metadata.
+ * Suppresses the display name to "Anonymous" if an admin has moderated it
+ * (publicNameHidden), in addition to the contributor's own anonymous choice.
  */
 export async function getShareData(contributionId: string): Promise<ShareData | null> {
   try {
@@ -25,6 +27,7 @@ export async function getShareData(contributionId: string): Promise<ShareData | 
         amountCents: true,
         publicName: true,
         isAnonymous: true,
+        publicNameHidden: true,
         hideAmountPublicly: true,
         contributorNumber: true,
         confirmedAt: true,
@@ -52,8 +55,11 @@ export async function getShareData(contributionId: string): Promise<ShareData | 
 
     return {
       amountCents: contribution.hideAmountPublicly ? null : contribution.amountCents,
+      // Anonymous contributions stay anonymous regardless of moderation.
+      // publicNameHidden is an admin-only suppression flag, separate from
+      // the contributor's own anonymous choice.
       displayName:
-        contribution.isAnonymous || !contribution.publicName
+        contribution.isAnonymous || contribution.publicNameHidden || !contribution.publicName
           ? "Anonymous"
           : contribution.publicName,
       contributorNumber: contribution.contributorNumber,
