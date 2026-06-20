@@ -47,6 +47,8 @@ model Contribution {
   paymentStatus     PaymentStatus   @default(PENDING)
   publicName        String?
   isAnonymous       Boolean         @default(true)
+  hideAmountPublicly Boolean        @default(false)
+  contributorNumber Int?
   emailHash         String?
   metadata          Json?
   createdAt         DateTime        @default(now())
